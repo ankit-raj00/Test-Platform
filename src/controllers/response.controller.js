@@ -7,7 +7,7 @@ import { User } from "../models/user.model.js";
 // CREATE: Add new response
 const addResponse = asyncHandler(async (req, res, next) => {
   const { enroll, testId, responses } = req.body;
-
+  console.log(req.body)
   if (!enroll || !testId || !responses || responses.length === 0) {
     throw new ApiError(400, "Missing required fields: enroll, testId, or responses.");
   }
