@@ -2,40 +2,45 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Test } from "../models/test.model.js";
-import { Question } from "../models/question.model.js";
 import mongoose from "mongoose";
+
+// Helper function to convert date to UTC
+const toUTC = (date) => {
+  if (!date) return null;
+  // Parse the date assuming it's in IST and convert to UTC
+  const istDate = new Date(date);
+  const utcDate = new Date(istDate.getTime() - 5.5 * 60 * 60 * 1000); // Subtract 5 hours 30 minutes
+  return utcDate.toISOString();
+};
 
 // CREATE: Add a new test
 const addTest = asyncHandler(async (req, res, next) => {
-  const { title, pattern, totalMarks, duration, testQuestions, testDateAndTime , validity ,syllabus} = req.body;
-  console.log(req.body)
+  const { title, pattern, totalMarks, duration, testQuestions, testDateAndTime, validity, syllabus } = req.body;
+
   const missingFields = [];
+  if (!title) missingFields.push("title");
+  if (!pattern) missingFields.push("pattern");
+  if (!totalMarks) missingFields.push("totalMarks");
+  if (!duration) missingFields.push("duration");
+  if (!testDateAndTime) missingFields.push("testDateAndTime");
 
-// Check for missing fields and add them to the array
-if (!title) missingFields.push('title');
-if (!pattern) missingFields.push('pattern');
-if (!totalMarks) missingFields.push('totalMarks');
-if (!duration) missingFields.push('duration');
-if (!testDateAndTime) missingFields.push('testDateAndTime');
+  if (missingFields.length > 0) {
+    throw new ApiError(400, `Missing fields: ${missingFields.join(", ")}`);
+  }
 
-if (missingFields.length > 0) {
-  throw new ApiError(400, `Missing fields: ${missingFields.join(', ')}`);
-}
+  const testData = {
+    title,
+    pattern,
+    totalMarks,
+    duration,
+    testQuestions,
+    testDateAndTime: toUTC(testDateAndTime), // Convert to UTC
+    validity,
+    syllabus,
+  };
 
- 
-  console.log(req.body)
   try {
-    const test = await Test.create({
-      title,
-      pattern,
-      totalMarks,
-      duration,
-      testQuestions,
-      testDateAndTime,
-      validity,
-      syllabus
-    });
-    console.log(test)
+    const test = await Test.create(testData);
     res.status(200).json(new ApiResponse(200, test, "Test created successfully."));
   } catch (error) {
     throw new ApiError(500, "Error occurred while creating the test.");
@@ -53,8 +58,6 @@ const getTests = asyncHandler(async (req, res, next) => {
       if (!test) {
         throw new ApiError(404, "Test not found.");
       }
-
-      
       res.status(200).json(new ApiResponse(200, test, "Test fetched successfully."));
     } catch (error) {
       throw new ApiError(500, "Error occurred while fetching the test.");
@@ -123,7 +126,7 @@ const getTestWithDetails = asyncHandler(async (req, res, next) => {
 // UPDATE: Update a test by ID
 const updateTest = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { title, pattern, totalMarks, duration, testQuestions, testDateAndTime , syllabus , validity } = req.body;
+  const { title, pattern, totalMarks, duration, testQuestions, testDateAndTime, syllabus, validity } = req.body;
 
   if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid test ID.");
@@ -135,9 +138,9 @@ const updateTest = asyncHandler(async (req, res, next) => {
   if (totalMarks) updateData.totalMarks = totalMarks;
   if (duration) updateData.duration = duration;
   if (testQuestions) updateData.testQuestions = testQuestions;
-  if (testDateAndTime) updateData.testDateAndTime = testDateAndTime;
-  if(validity) updateData.validity = validity;
-  if(syllabus) updateData.syllabus = syllabus;
+  if (testDateAndTime) updateData.testDateAndTime = toUTC(testDateAndTime); // Convert to UTC
+  if (validity) updateData.validity = validity;
+  if (syllabus) updateData.syllabus = syllabus;
 
   if (Object.keys(updateData).length === 0) {
     throw new ApiError(400, "No valid fields provided for update.");
