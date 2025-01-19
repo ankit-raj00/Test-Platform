@@ -24,6 +24,7 @@ const addQuestion = asyncHandler(async (req, res, next) => {
   }
 
   try {
+    console.log(req.file)
     // Extract the file path if a file is uploaded
     const filePath = req.file ? req.file.path : null;
 
